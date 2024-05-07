@@ -1,0 +1,5 @@
+---
+- name: Mattermost | Delete old dowloaded versions
+  ansible.builtin.file:
+    path: "{{ mattermost_temporary_dir }}/mattermost"
+    state: absent

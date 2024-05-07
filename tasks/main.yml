@@ -1,113 +1,12 @@
 ---
 # tasks file for mattermost
 
-- name: Mattermost | Ensure new version to install is defined
-  assert:
-    that:
-      - version is defined
+- include_tasks: setup.yml
 
-- name: Mattermost | Checks if new version is not already installed
-  stat:
-    path: "{{ mattermost_install_dir }}/mattermost-{{ version }}"
-  register: install_dir_exists
+- include_tasks: update-code.yml
 
-- name: Mattermost | Fail when new version is already installed
-  ansible.builtin.fail:
-    msg: This version has already been installed
-  when: install_dir_exists.stat.exists
+- include_tasks: symlink-shared.yml
 
-- name: Mattermost | Ensure directories exists
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-  loop:
-    - "{{ mattermost_install_dir }}"
-    - "{{ mattermost_temporary_dir }}"
+- include_tasks: symlink.yml
 
-- name: Mattermost | Ensure shared directories exist
-  ansible.builtin.file:
-    path: "{{ item.value }}"
-    state: directory
-  loop: "{{ mattermost_shared_dirs | dict2items }}"
-
-- name: Mattermost | Ensure shared directories exist
-  ansible.builtin.file:
-    path: "{{ item.value }}"
-    state: directory
-  loop: "{{ mattermost_client_shared_dirs | dict2items }}"
-
-- name: Mattermost | Ensure mattermost user exists
-  ansible.builtin.user:
-    name: "{{ mattermost_user }}"
-    uid: "{{ mattermost_user_id | default(omit) }}"
-    group: "{{ mattermost_user_group | default(omit) }}"
-
-- name: Mattermost | Delete old dowloaded versions
-  ansible.builtin.file:
-    path: "{{ mattermost_temporary_dir }}/mattermost"
-    state: absent
-
-- name: Mattermost | Download new version
-  ansible.builtin.get_url:
-    url: https://releases.mattermost.com/{{ version }}/mattermost-{{ version }}-linux-amd64.tar.gz
-    dest: "{{ mattermost_temporary_dir }}"
-
-- name: Mattermost | Unarchive the new version
-  ansible.builtin.unarchive:
-    src: "{{ mattermost_temporary_dir }}/mattermost-{{ version }}-linux-amd64.tar.gz"
-    dest: "{{ mattermost_temporary_dir }}"
-    remote_src: true
-
-- name: Mattermost | Delete embded directory that we will not use
-  ansible.builtin.file:
-    path: "{{ mattermost_temporary_dir }}/mattermost/{{ item }}"
-    state: absent
-  loop:
-    - config
-    - logs
-
-- name: Mattermost | Copy directory to destination
-  ansible.builtin.copy:
-    remote_src: true
-    src: "{{ mattermost_temporary_dir }}/mattermost/"
-    dest: "{{ mattermost_install_dir }}/mattermost-{{ version }}"
-    owner: "{{ mattermost_user }}"
-
-- name: Mattermost | Create a symbolic link for datas
-  ansible.builtin.file:
-    src: "{{  item.value }}"
-    dest: "{{ mattermost_install_dir }}/mattermost-{{ version }}/{{ item.key }}"
-    owner: root
-    group: root
-    state: link
-  loop: "{{ mattermost_shared_dirs | dict2items }}"
-
-- name: Mattermost | Create symbolic links for client data
-  ansible.builtin.file:
-    src: "{{  item.value }}"
-    dest: "{{ mattermost_install_dir }}/mattermost-{{ version }}/client/{{ item.key }}"
-    owner: root
-    group: root
-    state: link
-  loop: "{{ mattermost_client_shared_dirs | dict2items }}"
-
-- name: Mattermost | Stop mattermost service
-  ansible.builtin.systemd_service:
-    state: stopped
-    name: mattermost
-
-- name: Mattermost | Remove old symlink
-  ansible.builtin.file:
-    path: "{{ mattermost_install_dir }}/{{ mattermost_link_name }}"
-    state: absent
-
-- name: "Mattermost | Create new symlink to version {{ version}}"
-  ansible.builtin.file:
-    src: "{{ mattermost_install_dir }}/{{ mattermost_link_name }}-{{ version }}"
-    dest: "{{ mattermost_install_dir }}/{{ mattermost_link_name }}"
-    state: link
-
-- name: Mattermost | Restart mattermost service
-  ansible.builtin.systemd_service:
-    state: started
-    name: mattermost
+- include_tasks: cleanup.yml

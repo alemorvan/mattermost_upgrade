@@ -1,0 +1,26 @@
+---
+- name: Mattermost | Download new version
+  ansible.builtin.get_url:
+    url: https://releases.mattermost.com/{{ version }}/mattermost-{{ version }}-linux-amd64.tar.gz
+    dest: "{{ mattermost_temporary_dir }}"
+
+- name: Mattermost | Unarchive the new version
+  ansible.builtin.unarchive:
+    src: "{{ mattermost_temporary_dir }}/mattermost-{{ version }}-linux-amd64.tar.gz"
+    dest: "{{ mattermost_temporary_dir }}"
+    remote_src: true
+
+- name: Mattermost | Delete embded directory that we will not use
+  ansible.builtin.file:
+    path: "{{ mattermost_temporary_dir }}/mattermost/{{ item }}"
+    state: absent
+  loop:
+    - config
+    - logs
+
+- name: Mattermost | Copy directory to destination
+  ansible.builtin.copy:
+    remote_src: true
+    src: "{{ mattermost_temporary_dir }}/mattermost/"
+    dest: "{{ mattermost_install_dir }}/mattermost-{{ version }}"
+    owner: "{{ mattermost_user }}"

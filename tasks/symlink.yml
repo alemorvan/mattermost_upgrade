@@ -1,0 +1,21 @@
+---
+# - name: Mattermost | Stop mattermost service
+#   ansible.builtin.systemd_service:
+#     state: stopped
+#     name: mattermost
+
+- name: Mattermost | Remove old symlink
+  ansible.builtin.file:
+    path: "{{ mattermost_install_dir }}/{{ mattermost_link_name }}"
+    state: absent
+
+- name: "Mattermost | Create new symlink to version {{ version}}"
+  ansible.builtin.file:
+    src: "{{ mattermost_install_dir }}/{{ mattermost_link_name }}-{{ version }}"
+    dest: "{{ mattermost_install_dir }}/{{ mattermost_link_name }}"
+    state: link
+
+# - name: Mattermost | Restart mattermost service
+#   ansible.builtin.systemd_service:
+#     state: started
+#     name: mattermost

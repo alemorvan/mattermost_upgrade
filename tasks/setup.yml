@@ -1,0 +1,46 @@
+---
+- name: Mattermost | Ensure new version to install is defined
+  assert:
+    that:
+      - version is defined
+
+- name: Mattermost | Checks if new version is not already installed
+  stat:
+    path: "{{ mattermost_install_dir }}/mattermost-{{ version }}"
+  register: install_dir_exists
+
+- name: Mattermost | Fail when new version is already installed
+  ansible.builtin.fail:
+    msg: This version has already been installed
+  when: install_dir_exists.stat.exists
+
+- name: Mattermost | Ensure directories exists
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - "{{ mattermost_install_dir }}"
+    - "{{ mattermost_temporary_dir }}"
+
+- name: Mattermost | Ensure shared directories exist
+  ansible.builtin.file:
+    path: "{{ item.value }}"
+    state: directory
+  loop: "{{ mattermost_shared_dirs | dict2items }}"
+
+- name: Mattermost | Ensure shared directories exist
+  ansible.builtin.file:
+    path: "{{ item.value }}"
+    state: directory
+  loop: "{{ mattermost_client_shared_dirs | dict2items }}"
+
+- name: Mattermost | Ensure mattermost user exists
+  ansible.builtin.user:
+    name: "{{ mattermost_user }}"
+    uid: "{{ mattermost_user_id | default(omit) }}"
+    group: "{{ mattermost_user_group | default(omit) }}"
+
+- name: Mattermost | Delete old dowloaded versions
+  ansible.builtin.file:
+    path: "{{ mattermost_temporary_dir }}/mattermost"
+    state: absent
